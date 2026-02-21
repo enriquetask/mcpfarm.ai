@@ -2,6 +2,7 @@
 Data Science MCP server — NumPy, Pandas, and statistics utilities.
 """
 
+from io import StringIO
 from typing import List, Dict, Optional
 
 import numpy as np
@@ -53,7 +54,7 @@ def df_head(json_df: str, n: int = 5) -> str:
     """
     Return the first n rows of a DataFrame encoded as JSON.
     """
-    df = pd.read_json(json_df)
+    df = pd.read_json(StringIO(json_df))
     return df.head(n).to_json()
 
 @mcp.tool()
@@ -62,7 +63,7 @@ def df_describe(json_df: str) -> Dict:
     Return descriptive statistics for a DataFrame.
     Includes count, mean, std, min, quartiles, and max for numeric cols.
     """
-    df = pd.read_json(json_df)
+    df = pd.read_json(StringIO(json_df))
     return df.describe().to_dict()
 
 @mcp.tool()
@@ -73,7 +74,7 @@ def df_filter(
     Filter a DataFrame where column op value.
     Supported ops: '==', '!=', '<', '<=', '>', '>='
     """
-    df = pd.read_json(json_df)
+    df = pd.read_json(StringIO(json_df))
     if op not in ("==", "!=", "<", "<=", ">", ">="):
         raise ValueError(f"Unsupported op: {op}")
     return df.query(f"{column} {op} @value").to_json()

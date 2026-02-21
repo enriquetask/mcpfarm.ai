@@ -1,0 +1,19 @@
+[project]
+name = "mcpfarm"
+version = "0.1.0"
+description = "Centralized MCP server farm for agentic ecosystems"
+requires-python = ">=3.12"
+readme = "README.md"
+
+[tool.uv.workspace]
+members = ["gateway", "sdk"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "SIM", "TCH"]
+
+[tool.pytest.ini_options]
+testpaths = ["gateway/tests", "sdk/tests"]

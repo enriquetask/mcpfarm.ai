@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.venv/
+venv/
+
+# uv
+.python-version
+
+# Node / Next.js
+node_modules/
+frontend/.next/
+frontend/out/
+.pnpm-store/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# Alembic
+*.db
+
+# Claude memory bank (never commit)
+CLAUDE-*.md
+CLAUDE.md
+
+# Logs
+*.log
+
+# Temp
+TEMP/

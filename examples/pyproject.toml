@@ -1,0 +1,19 @@
+[project]
+name = "mcpfarm-examples"
+version = "0.1.0"
+description = "MCPFarm.ai example agents"
+requires-python = ">=3.12"
+dependencies = [
+    "mcpfarm-sdk[langchain]",
+    "langgraph>=0.2.0",
+    "langchain-openai>=0.2.0",
+    "langchain-anthropic>=0.3.0",
+    "python-dotenv>=1.0.0",
+]
+
+[tool.uv.sources]
+mcpfarm-sdk = { path = "../sdk", editable = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

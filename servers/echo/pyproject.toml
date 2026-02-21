@@ -1,0 +1,13 @@
+[project]
+name = "mcpfarm-echo-server"
+version = "0.1.0"
+description = "Echo MCP server for MCPFarm.ai testing"
+requires-python = ">=3.12"
+dependencies = [
+    "fastmcp>=2.0.0",
+    "uvicorn[standard]>=0.34.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

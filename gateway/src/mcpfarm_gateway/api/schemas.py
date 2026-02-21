@@ -1,14 +1,10 @@
 """Pydantic request/response schemas for the REST API."""
 
-from __future__ import annotations
-
-from typing import TYPE_CHECKING, Any
+import uuid
+from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, Field
-
-if TYPE_CHECKING:
-    import uuid
-    from datetime import datetime
 
 # ── Server schemas ───────────────────────────────────────────
 

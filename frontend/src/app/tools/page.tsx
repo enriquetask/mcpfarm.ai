@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTools } from "@/stores/farm-store";
 import { callTool } from "@/lib/api";
 import type { ToolData } from "@/lib/api";
@@ -211,6 +211,13 @@ function ToolPlayground({ tool }: { tool: ToolData }) {
   const [error, setError] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
   const [durationMs, setDurationMs] = useState<number | null>(null);
+
+  useEffect(() => {
+    setArgs({});
+    setResult(null);
+    setError(null);
+    setDurationMs(null);
+  }, [tool.namespaced_name]);
 
   const schema = tool.input_schema as {
     properties?: Record<string, { type?: string; description?: string }>;

@@ -79,9 +79,44 @@ services:
       - TAVILY_API_KEY=${TAVILY_API_KEY:-}
     networks:
       - mcpfarm_internal
+      - mcpfarm_public
     labels:
       - "mcpfarm.managed=true"
       - "mcpfarm.namespace=web"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.socket(); s.settimeout(2); s.connect(('localhost',9001)); s.close()"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  data-science-server:
+    build:
+      context: ./servers/data_science
+    networks:
+      - mcpfarm_internal
+    labels:
+      - "mcpfarm.managed=true"
+      - "mcpfarm.namespace=data"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.socket(); s.settimeout(2); s.connect(('localhost',9001)); s.close()"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  communications-server:
+    build:
+      context: ./servers/communications
+    environment:
+      - GMAIL_ADDRESS=${GMAIL_ADDRESS:-}
+      - GMAIL_APP_PASSWORD=${GMAIL_APP_PASSWORD:-}
+      - WHATSAPP_TOKEN=${WHATSAPP_TOKEN:-}
+      - WHATSAPP_PHONE_NUMBER_ID=${WHATSAPP_PHONE_NUMBER_ID:-}
+    networks:
+      - mcpfarm_internal
+      - mcpfarm_public
+    labels:
+      - "mcpfarm.managed=true"
+      - "mcpfarm.namespace=comms"
     healthcheck:
       test: ["CMD", "python", "-c", "import socket; s=socket.socket(); s.settimeout(2); s.connect(('localhost',9001)); s.close()"]
       interval: 10s

@@ -2,7 +2,8 @@
 
 import uuid
 
-from sqlalchemy import select, delete as sql_delete
+from sqlalchemy import delete as sql_delete
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from mcpfarm_gateway.db.models import MCPTool
@@ -32,9 +33,7 @@ class ToolRepository:
 
     async def sync_tools(self, server_id: uuid.UUID, namespace: str, tools: list[dict]) -> None:
         """Replace all tools for a server with newly discovered ones."""
-        await self.session.execute(
-            sql_delete(MCPTool).where(MCPTool.server_id == server_id)
-        )
+        await self.session.execute(sql_delete(MCPTool).where(MCPTool.server_id == server_id))
         for tool_data in tools:
             tool = MCPTool(
                 server_id=server_id,
@@ -55,7 +54,5 @@ class ToolRepository:
         await self.session.commit()
 
     async def count(self) -> int:
-        result = await self.session.execute(
-            select(MCPTool).where(MCPTool.is_available)
-        )
+        result = await self.session.execute(select(MCPTool).where(MCPTool.is_available))
         return len(result.scalars().all())

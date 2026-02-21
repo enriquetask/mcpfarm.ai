@@ -4,15 +4,17 @@ from __future__ import annotations
 
 import logging
 import time
+from typing import TYPE_CHECKING
 
 from fastapi import HTTPException, Request
 from starlette.responses import JSONResponse
 
 from mcpfarm_gateway.config import settings
 from mcpfarm_gateway.db.models import APIKey
-from mcpfarm_gateway.db.repositories.api_keys import APIKeyRepository
-
 from mcpfarm_gateway.observability.metrics import auth_failures_total
+
+if TYPE_CHECKING:
+    from mcpfarm_gateway.db.repositories.api_keys import APIKeyRepository
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +67,7 @@ def _make_admin_key() -> APIKey:
     Constructs a proper SQLAlchemy instance without persisting to DB.
     """
     import uuid
+
     key = APIKey(
         id=uuid.UUID("00000000-0000-0000-0000-000000000000"),
         name="admin",
@@ -101,6 +104,7 @@ async def _check_rate_limit(request: Request, key_hash: str) -> None:
 def require_scope(namespace: str):
     """Dependency factory: checks that the API key has access to a namespace."""
     from fastapi import Depends
+
     from mcpfarm_gateway.api.deps import get_current_api_key
 
     async def _check(api_key: APIKey = Depends(get_current_api_key)) -> APIKey:
@@ -109,6 +113,7 @@ def require_scope(namespace: str):
         if namespace in api_key.scopes:
             return api_key
         raise HTTPException(status_code=403, detail=f"No access to namespace '{namespace}'")
+
     return _check
 
 

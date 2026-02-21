@@ -82,11 +82,6 @@ function InvocationRow({
         ? "bg-red-400"
         : "bg-amber-400";
 
-  // Try to extract tool name from input data or use ID
-  const toolName =
-    (invocation.input_data as Record<string, string>)?.tool_name ||
-    invocation.id.substring(0, 8);
-
   return (
     <div className="glass-card overflow-hidden">
       <button

@@ -33,8 +33,10 @@ async def health_ready(request: Request):
 
     # Check database
     try:
-        from mcpfarm_gateway.db import engine
         from sqlalchemy import text
+
+        from mcpfarm_gateway.db import engine
+
         async with engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
         checks["database"] = "ok"
@@ -63,6 +65,7 @@ async def health_ready(request: Request):
 
     status_code = 200 if overall else 503
     from starlette.responses import JSONResponse
+
     return JSONResponse(
         status_code=status_code,
         content={"status": "ok" if overall else "degraded", "checks": checks},

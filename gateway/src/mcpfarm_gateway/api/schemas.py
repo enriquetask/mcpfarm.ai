@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
-import uuid
-from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, Field
 
+if TYPE_CHECKING:
+    import uuid
+    from datetime import datetime
 
 # ── Server schemas ───────────────────────────────────────────
+
 
 class ServerCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
@@ -52,6 +54,7 @@ class ServerListResponse(BaseModel):
 
 # ── Tool schemas ─────────────────────────────────────────────
 
+
 class ToolResponse(BaseModel):
     name: str
     namespaced_name: str
@@ -67,6 +70,7 @@ class ToolListResponse(BaseModel):
 
 
 # ── Invocation schemas ───────────────────────────────────────
+
 
 class ToolCallRequest(BaseModel):
     tool_name: str
@@ -100,6 +104,7 @@ class InvocationListResponse(BaseModel):
 
 # ── API Key schemas ───────────────────────────────────────────
 
+
 class APIKeyCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     scopes: list[str] = Field(default_factory=list)
@@ -118,6 +123,7 @@ class APIKeyResponse(BaseModel):
 
 class APIKeyCreatedResponse(APIKeyResponse):
     """Returned only on creation - includes the plaintext key."""
+
     key: str
 
 
@@ -127,6 +133,7 @@ class APIKeyListResponse(BaseModel):
 
 
 # ── Stats ────────────────────────────────────────────────────
+
 
 class StatsResponse(BaseModel):
     total_servers: int

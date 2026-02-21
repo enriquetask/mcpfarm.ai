@@ -3,8 +3,6 @@
 import asyncio
 import logging
 
-import httpx
-
 logger = logging.getLogger(__name__)
 
 
@@ -21,14 +19,12 @@ async def probe_mcp_health(host: str, port: int, timeout: float = 5.0) -> bool:
         writer.close()
         await writer.wait_closed()
         return True
-    except (OSError, asyncio.TimeoutError) as e:
+    except (TimeoutError, OSError) as e:
         logger.debug("Health probe failed for %s:%d: %s", host, port, e)
         return False
 
 
-async def wait_for_ready(
-    host: str, port: int, retries: int = 10, interval: float = 1.0
-) -> bool:
+async def wait_for_ready(host: str, port: int, retries: int = 10, interval: float = 1.0) -> bool:
     """Wait until an MCP server is ready to accept connections.
 
     Returns True if ready within the retry window, False otherwise.

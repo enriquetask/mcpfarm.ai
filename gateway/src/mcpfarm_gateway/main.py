@@ -7,21 +7,21 @@ import redis.asyncio as aioredis
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
+from mcpfarm_gateway.api.auth import MCPAuthMiddleware
+from mcpfarm_gateway.api.health import router as health_router
+from mcpfarm_gateway.api.invocations import router as invocations_router
+from mcpfarm_gateway.api.keys import router as keys_router
+from mcpfarm_gateway.api.servers import router as servers_router
+from mcpfarm_gateway.api.tools import router as tools_router
 from mcpfarm_gateway.config import settings
 from mcpfarm_gateway.containers.manager import DockerContainerManager
 from mcpfarm_gateway.containers.watcher import ServerWatcher
 from mcpfarm_gateway.mcp.gateway_server import gateway_mcp
 from mcpfarm_gateway.mcp.proxy_manager import ProxyManager
 from mcpfarm_gateway.mcp.tool_registry import ToolRegistry
+from mcpfarm_gateway.observability import ObservabilityMiddleware, metrics_endpoint, setup_logging
 from mcpfarm_gateway.realtime.redis_pubsub import EventBus
 from mcpfarm_gateway.realtime.ws_hub import WebSocketHub
-from mcpfarm_gateway.api.auth import MCPAuthMiddleware
-from mcpfarm_gateway.api.health import router as health_router
-from mcpfarm_gateway.api.keys import router as keys_router
-from mcpfarm_gateway.api.servers import router as servers_router
-from mcpfarm_gateway.api.tools import router as tools_router
-from mcpfarm_gateway.api.invocations import router as invocations_router
-from mcpfarm_gateway.observability import setup_logging, ObservabilityMiddleware, metrics_endpoint
 
 setup_logging(
     log_level=settings.gateway_log_level,
@@ -45,7 +45,7 @@ async def lifespan(app: FastAPI):
 
     # Redis
     redis_client = aioredis.from_url(settings.redis_url, decode_responses=False)
-    await redis_client.ping()
+    await redis_client.ping()  # type: ignore[misc]
     logger.info("Redis connected")
 
     # Core services
@@ -97,10 +97,8 @@ def create_app() -> FastAPI:
     @asynccontextmanager
     async def combined_lifespan(app: FastAPI):
         # Run FastMCP lifespan (initializes session manager task group)
-        async with mcp_app.lifespan(mcp_app):
-            # Then run our own gateway lifespan
-            async with lifespan(app):
-                yield
+        async with mcp_app.lifespan(mcp_app), lifespan(app):
+            yield
 
     app = FastAPI(
         title="MCPFarm.ai Gateway",

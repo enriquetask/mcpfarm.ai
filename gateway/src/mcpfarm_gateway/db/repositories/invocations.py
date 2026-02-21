@@ -3,7 +3,7 @@
 import uuid
 from typing import Any
 
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from mcpfarm_gateway.db.models import ToolInvocation
@@ -70,7 +70,5 @@ class InvocationRepository:
         return list(result.scalars().all())
 
     async def count(self) -> int:
-        result = await self.session.execute(
-            select(func.count(ToolInvocation.id))
-        )
+        result = await self.session.execute(select(func.count(ToolInvocation.id)))
         return result.scalar_one()

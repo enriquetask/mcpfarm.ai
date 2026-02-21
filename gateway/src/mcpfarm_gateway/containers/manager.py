@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 import docker
-from docker.models.containers import Container
+
+if TYPE_CHECKING:
+    from docker.models.containers import Container
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +94,12 @@ class DockerContainerManager:
             remove=False,
         )
 
-        logger.info("Started container %s (%s) on network %s", container_name, container.id[:12], network_name)
+        logger.info(
+            "Started container %s (%s) on network %s",
+            container_name,
+            container.id[:12],
+            network_name,
+        )
         return container.id
 
     async def stop(self, container_id: str) -> None:
@@ -152,12 +159,14 @@ class DockerContainerManager:
                 image = c.image.tags[0] if c.image.tags else c.attrs["Config"]["Image"]
             except Exception:
                 image = "unknown"
-            result.append({
-                "container_id": c.id,
-                "name": c.name,
-                "status": c.status,
-                "namespace": c.labels.get(LABEL_NAMESPACE, ""),
-                "server_id": c.labels.get(LABEL_SERVER_ID, ""),
-                "image": image,
-            })
+            result.append(
+                {
+                    "container_id": c.id,
+                    "name": c.name,
+                    "status": c.status,
+                    "namespace": c.labels.get(LABEL_NAMESPACE, ""),
+                    "server_id": c.labels.get(LABEL_SERVER_ID, ""),
+                    "image": image,
+                }
+            )
         return result

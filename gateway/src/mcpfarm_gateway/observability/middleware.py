@@ -4,16 +4,19 @@ from __future__ import annotations
 
 import time
 import uuid
+from typing import TYPE_CHECKING
 
 import structlog
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from starlette.requests import Request
-from starlette.responses import Response
 
 from mcpfarm_gateway.observability.metrics import (
     http_request_duration_seconds,
     http_requests_total,
 )
+
+if TYPE_CHECKING:
+    from starlette.requests import Request
+    from starlette.responses import Response
 
 logger = structlog.stdlib.get_logger(__name__)
 
@@ -30,10 +33,7 @@ def _normalize_path(path: str) -> str:
     normalized = []
     for part in parts:
         # UUID pattern
-        if len(part) == 36 and part.count("-") == 4:
-            normalized.append("{id}")
-        # Numeric ID
-        elif part.isdigit():
+        if len(part) == 36 and part.count("-") == 4 or part.isdigit():
             normalized.append("{id}")
         else:
             normalized.append(part)

@@ -3,9 +3,9 @@
 import hashlib
 import secrets
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from mcpfarm_gateway.config import settings
@@ -50,21 +50,15 @@ class APIKeyRepository:
     async def get_by_hash(self, plaintext: str) -> APIKey | None:
         """Look up an API key by its plaintext value (hashed for lookup)."""
         key_hash = _hash_key(plaintext)
-        result = await self.session.execute(
-            select(APIKey).where(APIKey.key_hash == key_hash)
-        )
+        result = await self.session.execute(select(APIKey).where(APIKey.key_hash == key_hash))
         return result.scalar_one_or_none()
 
     async def get_by_id(self, key_id: uuid.UUID) -> APIKey | None:
-        result = await self.session.execute(
-            select(APIKey).where(APIKey.id == key_id)
-        )
+        result = await self.session.execute(select(APIKey).where(APIKey.id == key_id))
         return result.scalar_one_or_none()
 
     async def list_all(self) -> list[APIKey]:
-        result = await self.session.execute(
-            select(APIKey).order_by(APIKey.created_at.desc())
-        )
+        result = await self.session.execute(select(APIKey).order_by(APIKey.created_at.desc()))
         return list(result.scalars().all())
 
     async def revoke(self, key_id: uuid.UUID) -> APIKey | None:
@@ -77,15 +71,11 @@ class APIKeyRepository:
         return api_key
 
     async def count(self) -> int:
-        result = await self.session.execute(
-            select(func.count(APIKey.id))
-        )
+        result = await self.session.execute(select(func.count(APIKey.id)))
         return result.scalar_one()
 
     def validate_key(self, api_key: APIKey) -> bool:
         """Check if a key is active and not expired."""
         if not api_key.is_active:
             return False
-        if api_key.expires_at and api_key.expires_at < datetime.now(timezone.utc):
-            return False
-        return True
+        return not (api_key.expires_at and api_key.expires_at < datetime.now(UTC))

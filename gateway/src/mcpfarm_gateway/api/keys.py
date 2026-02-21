@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import uuid
+from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -13,8 +13,12 @@ from mcpfarm_gateway.api.schemas import (
     APIKeyListResponse,
     APIKeyResponse,
 )
-from mcpfarm_gateway.db.models import APIKey
-from mcpfarm_gateway.db.repositories import APIKeyRepository
+
+if TYPE_CHECKING:
+    import uuid
+
+    from mcpfarm_gateway.db.models import APIKey
+    from mcpfarm_gateway.db.repositories import APIKeyRepository
 
 router = APIRouter(prefix="/keys", tags=["keys"])
 

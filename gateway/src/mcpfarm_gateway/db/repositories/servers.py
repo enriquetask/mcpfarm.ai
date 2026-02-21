@@ -28,9 +28,7 @@ class ServerRepository:
         return result.scalar_one_or_none()
 
     async def get_by_name(self, name: str) -> MCPServer | None:
-        result = await self.session.execute(
-            select(MCPServer).where(MCPServer.name == name)
-        )
+        result = await self.session.execute(select(MCPServer).where(MCPServer.name == name))
         return result.scalar_one_or_none()
 
     async def get_by_namespace(self, namespace: str) -> MCPServer | None:

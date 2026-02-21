@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-import uuid
+from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -16,7 +16,6 @@ from mcpfarm_gateway.api.deps import (
     get_tool_registry,
     get_tool_repo,
 )
-from mcpfarm_gateway.db.models import APIKey
 from mcpfarm_gateway.api.schemas import (
     ServerCreate,
     ServerListResponse,
@@ -24,11 +23,16 @@ from mcpfarm_gateway.api.schemas import (
     ServerUpdate,
 )
 from mcpfarm_gateway.containers.health import wait_for_ready
-from mcpfarm_gateway.containers.manager import DockerContainerManager
-from mcpfarm_gateway.db.repositories import ServerRepository, ToolRepository
-from mcpfarm_gateway.mcp.proxy_manager import ProxyManager
-from mcpfarm_gateway.mcp.tool_registry import ToolRegistry
-from mcpfarm_gateway.realtime.redis_pubsub import EventBus
+
+if TYPE_CHECKING:
+    import uuid
+
+    from mcpfarm_gateway.containers.manager import DockerContainerManager
+    from mcpfarm_gateway.db.models import APIKey
+    from mcpfarm_gateway.db.repositories import ServerRepository, ToolRepository
+    from mcpfarm_gateway.mcp.proxy_manager import ProxyManager
+    from mcpfarm_gateway.mcp.tool_registry import ToolRegistry
+    from mcpfarm_gateway.realtime.redis_pubsub import EventBus
 
 logger = logging.getLogger(__name__)
 
@@ -168,6 +172,7 @@ async def start_server(
 
     # Update status
     server = await repo.update_status(server_id, "STARTING", container_id)
+    assert server is not None
 
     # Get container IP and wait for readiness before mounting proxy
     ip = await container_mgr.get_ip(container_id)
@@ -180,21 +185,28 @@ async def start_server(
                 await tool_reg.register_tools(str(server.id), server.namespace, tools)
                 await tool_repo.sync_tools(server.id, server.namespace, tools)
                 server = await repo.update_status(server_id, "HEALTHY")
+                assert server is not None
             except Exception as e:
-                logger.error("Failed to mount proxy for %s: %s", server.namespace, e)
+                logger.error("Failed to mount proxy for %s: %s", server.namespace, e)  # type: ignore[union-attr]
                 server = await repo.update_status(server_id, "DEGRADED")
+                assert server is not None
         else:
             logger.warning("Container %s not ready in time", container_id[:12])
             server = await repo.update_status(server_id, "DEGRADED")
+            assert server is not None
     else:
         logger.warning("Could not get IP for container %s", container_id[:12])
         server = await repo.update_status(server_id, "DEGRADED")
+        assert server is not None
 
-    await event_bus.publish("server.started", {
-        "server_id": str(server_id),
-        "name": server.name,
-        "status": server.status,
-    })
+    await event_bus.publish(
+        "server.started",
+        {
+            "server_id": str(server_id),
+            "name": server.name,
+            "status": server.status,
+        },
+    )
 
     return _server_to_response(server, tool_count=len(server.tools))
 
@@ -223,11 +235,15 @@ async def stop_server(
     await tool_repo.mark_unavailable(server.id)
 
     server = await repo.update_status(server_id, "STOPPED", container_id=None)
+    assert server is not None
 
-    await event_bus.publish("server.stopped", {
-        "server_id": str(server_id),
-        "name": server.name,
-    })
+    await event_bus.publish(
+        "server.stopped",
+        {
+            "server_id": str(server_id),
+            "name": server.name,
+        },
+    )
 
     return _server_to_response(server)
 
@@ -265,6 +281,7 @@ async def restart_server(
     )
 
     server = await repo.update_status(server_id, "STARTING", container_id)
+    assert server is not None
 
     ip = await container_mgr.get_ip(container_id)
     if ip:
@@ -276,14 +293,19 @@ async def restart_server(
                 await tool_reg.register_tools(str(server.id), server.namespace, tools)
                 await tool_repo.sync_tools(server.id, server.namespace, tools)
                 server = await repo.update_status(server_id, "HEALTHY")
+                assert server is not None
             except Exception as e:
-                logger.error("Failed to mount proxy for %s: %s", server.namespace, e)
+                logger.error("Failed to mount proxy for %s: %s", server.namespace, e)  # type: ignore[union-attr]
                 server = await repo.update_status(server_id, "DEGRADED")
+                assert server is not None
 
-    await event_bus.publish("server.restarted", {
-        "server_id": str(server_id),
-        "name": server.name,
-        "status": server.status,
-    })
+    await event_bus.publish(
+        "server.restarted",
+        {
+            "server_id": str(server_id),
+            "name": server.name,
+            "status": server.status,
+        },
+    )
 
     return _server_to_response(server, tool_count=len(server.tools))

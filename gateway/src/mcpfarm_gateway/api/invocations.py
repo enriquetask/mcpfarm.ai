@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import time
 import uuid
+from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -15,22 +16,23 @@ from mcpfarm_gateway.api.deps import (
     get_tool_registry,
     get_tool_repo,
 )
-from mcpfarm_gateway.db.models import APIKey
 from mcpfarm_gateway.api.schemas import (
     InvocationListResponse,
     InvocationResponse,
     ToolCallRequest,
     ToolCallResponse,
 )
-from mcpfarm_gateway.db.repositories import InvocationRepository, ToolRepository
 from mcpfarm_gateway.mcp.gateway_server import gateway_mcp
-from mcpfarm_gateway.mcp.tool_registry import ToolRegistry
-from mcpfarm_gateway.realtime.redis_pubsub import EventBus
-
 from mcpfarm_gateway.observability.metrics import (
-    tool_invocations_total,
     tool_invocation_duration_seconds,
+    tool_invocations_total,
 )
+
+if TYPE_CHECKING:
+    from mcpfarm_gateway.db.models import APIKey
+    from mcpfarm_gateway.db.repositories import InvocationRepository, ToolRepository
+    from mcpfarm_gateway.mcp.tool_registry import ToolRegistry
+    from mcpfarm_gateway.realtime.redis_pubsub import EventBus
 
 logger = logging.getLogger(__name__)
 
@@ -75,10 +77,13 @@ async def call_tool(
 
         # Prometheus metrics
         tool_invocations_total.labels(
-            tool_name=body.tool_name, server_namespace=server_namespace, status="success",
+            tool_name=body.tool_name,
+            server_namespace=server_namespace,
+            status="success",
         ).inc()
         tool_invocation_duration_seconds.labels(
-            tool_name=body.tool_name, server_namespace=server_namespace,
+            tool_name=body.tool_name,
+            server_namespace=server_namespace,
         ).observe(duration_s)
 
         # Extract content from ToolResult
@@ -95,12 +100,15 @@ async def call_tool(
 
         await inv_repo.complete(inv.id, output, duration_ms, status="success")
 
-        await event_bus.publish("tool.invoked", {
-            "tool_name": body.tool_name,
-            "server_id": str(server_id),
-            "duration_ms": duration_ms,
-            "status": "success",
-        })
+        await event_bus.publish(
+            "tool.invoked",
+            {
+                "tool_name": body.tool_name,
+                "server_id": str(server_id),
+                "duration_ms": duration_ms,
+                "status": "success",
+            },
+        )
 
         return ToolCallResponse(
             result=output.get("result", output),
@@ -114,21 +122,25 @@ async def call_tool(
 
         # Prometheus metrics
         tool_invocations_total.labels(
-            tool_name=body.tool_name, server_namespace=server_namespace, status="error",
+            tool_name=body.tool_name,
+            server_namespace=server_namespace,
+            status="error",
         ).inc()
         tool_invocation_duration_seconds.labels(
-            tool_name=body.tool_name, server_namespace=server_namespace,
+            tool_name=body.tool_name,
+            server_namespace=server_namespace,
         ).observe(duration_s)
 
-        await inv_repo.complete(
-            inv.id, {"error": str(e)}, duration_ms, status="error"
+        await inv_repo.complete(inv.id, {"error": str(e)}, duration_ms, status="error")
+        await event_bus.publish(
+            "tool.error",
+            {
+                "tool_name": body.tool_name,
+                "server_id": str(server_id),
+                "error": str(e),
+            },
         )
-        await event_bus.publish("tool.error", {
-            "tool_name": body.tool_name,
-            "server_id": str(server_id),
-            "error": str(e),
-        })
-        raise HTTPException(status_code=500, detail=f"Tool call failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Tool call failed: {e}") from e
 
 
 @router.get("/invocations", response_model=InvocationListResponse)

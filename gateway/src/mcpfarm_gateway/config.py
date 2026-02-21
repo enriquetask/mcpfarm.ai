@@ -12,9 +12,7 @@ class Settings(BaseSettings):
     gateway_log_level: str = "info"
 
     # Database
-    database_url: str = (
-        "postgresql+asyncpg://mcpfarm:mcpfarm_dev@postgres:5432/mcpfarm"
-    )
+    database_url: str = "postgresql+asyncpg://mcpfarm:mcpfarm_dev@postgres:5432/mcpfarm"
 
     # Redis
     redis_url: str = "redis://redis:6379/0"

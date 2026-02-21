@@ -8,9 +8,10 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-import redis.asyncio as aioredis
+if TYPE_CHECKING:
+    import redis.asyncio as aioredis
 
 logger = logging.getLogger(__name__)
 
@@ -48,26 +49,28 @@ class ToolRegistry:
                     "is_available": True,
                 }
                 self._cache[namespaced_name] = tool_info
-                await pipe.hset(REDIS_TOOLS_KEY, namespaced_name, json.dumps(tool_info))
+                await pipe.hset(REDIS_TOOLS_KEY, namespaced_name, json.dumps(tool_info))  # type: ignore[misc]
                 tool_names.append(namespaced_name)
 
             if tool_names:
-                await pipe.sadd(server_key, *tool_names)
+                await pipe.sadd(server_key, *tool_names)  # type: ignore[misc]
             await pipe.execute()
 
-        logger.info("Registered %d tools for server %s (namespace=%s)", len(tools), server_id, namespace)
+        logger.info(
+            "Registered %d tools for server %s (namespace=%s)", len(tools), server_id, namespace
+        )
 
     async def unregister_server(self, server_id: str) -> None:
         """Remove all cached tools for a server."""
         server_key = REDIS_TOOLS_BY_SERVER_KEY.format(server_id=server_id)
-        tool_names = await self.redis.smembers(server_key)
+        tool_names = await self.redis.smembers(server_key)  # type: ignore[misc]
 
         if tool_names:
             async with self.redis.pipeline() as pipe:
                 for name in tool_names:
                     name_str = name.decode() if isinstance(name, bytes) else name
                     self._cache.pop(name_str, None)
-                    await pipe.hdel(REDIS_TOOLS_KEY, name_str)
+                    await pipe.hdel(REDIS_TOOLS_KEY, name_str)  # type: ignore[misc]
                 await pipe.delete(server_key)
                 await pipe.execute()
 
@@ -79,7 +82,7 @@ class ToolRegistry:
             return list(self._cache.values())
 
         # Rebuild from Redis
-        all_tools = await self.redis.hgetall(REDIS_TOOLS_KEY)
+        all_tools = await self.redis.hgetall(REDIS_TOOLS_KEY)  # type: ignore[misc]
         result = []
         for name, data in all_tools.items():
             tool_info = json.loads(data)
@@ -93,7 +96,7 @@ class ToolRegistry:
         if namespaced_name in self._cache:
             return self._cache[namespaced_name]
 
-        data = await self.redis.hget(REDIS_TOOLS_KEY, namespaced_name)
+        data = await self.redis.hget(REDIS_TOOLS_KEY, namespaced_name)  # type: ignore[misc]
         if data:
             tool_info = json.loads(data)
             self._cache[namespaced_name] = tool_info
@@ -102,7 +105,7 @@ class ToolRegistry:
 
     async def count(self) -> int:
         """Count total available tools."""
-        return await self.redis.hlen(REDIS_TOOLS_KEY)
+        return await self.redis.hlen(REDIS_TOOLS_KEY)  # type: ignore[misc]
 
     async def clear(self) -> None:
         """Clear all cached tools."""

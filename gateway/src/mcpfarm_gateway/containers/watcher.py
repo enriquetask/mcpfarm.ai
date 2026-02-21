@@ -7,24 +7,26 @@ when health states change (restart on failure, re-mount on recovery).
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from mcpfarm_gateway.containers.health import probe_mcp_health, wait_for_ready
-from mcpfarm_gateway.containers.manager import DockerContainerManager
 from mcpfarm_gateway.db import async_session
 from mcpfarm_gateway.db.repositories.servers import ServerRepository
 from mcpfarm_gateway.db.repositories.tools import ToolRepository
-from mcpfarm_gateway.mcp.proxy_manager import ProxyManager
-from mcpfarm_gateway.mcp.tool_registry import ToolRegistry
-from mcpfarm_gateway.realtime.redis_pubsub import EventBus
-
 from mcpfarm_gateway.observability.metrics import (
-    server_restarts_total,
     server_restart_count,
+    server_restarts_total,
     servers_total,
     tools_available,
 )
+
+if TYPE_CHECKING:
+    from mcpfarm_gateway.containers.manager import DockerContainerManager
+    from mcpfarm_gateway.mcp.proxy_manager import ProxyManager
+    from mcpfarm_gateway.mcp.tool_registry import ToolRegistry
+    from mcpfarm_gateway.realtime.redis_pubsub import EventBus
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +98,8 @@ class ServerWatcher:
                         await session.commit()
                         logger.info(
                             "Updated container_id for %s (%s)",
-                            namespace, container["container_id"][:12],
+                            namespace,
+                            container["container_id"][:12],
                         )
                     continue
 
@@ -113,23 +116,21 @@ class ServerWatcher:
 
                 # Set container_id and initial status
                 if container["status"] == "running":
-                    await repo.update_status(
-                        server.id, "STARTING", container["container_id"]
-                    )
+                    await repo.update_status(server.id, "STARTING", container["container_id"])
 
                 logger.info(
                     "Bootstrap: registered %s (namespace=%s, container=%s)",
-                    display_name, namespace, container["container_id"][:12],
+                    display_name,
+                    namespace,
+                    container["container_id"][:12],
                 )
 
     async def stop(self) -> None:
         """Stop the watcher."""
         if self._task:
             self._task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._task
-            except asyncio.CancelledError:
-                pass
             self._task = None
         logger.info("ServerWatcher stopped")
 
@@ -158,10 +159,8 @@ class ServerWatcher:
             servers_total.labels(status=status_val).set(status_counts.get(status_val, 0))
 
         # Update tools gauge
-        try:
+        with contextlib.suppress(Exception):
             tools_available.set(await self.tool_registry.count())
-        except Exception:
-            pass
 
         for server in servers:
             if server.status == "STOPPED":
@@ -177,7 +176,7 @@ class ServerWatcher:
 
     async def _check_server(self, server: Any) -> None:
         """Check a single server's health and take action."""
-        server_id = str(server.id)
+        str(server.id)
 
         # Docker-level: is the container running?
         docker_status = await self.container_mgr.get_status(server.container_id)
@@ -215,16 +214,19 @@ class ServerWatcher:
         count = self._restart_counts.get(server_id, 0)
         if count >= server.max_restart_attempts:
             await self._transition(
-                server, "UNHEALTHY",
-                f"Max restart attempts ({server.max_restart_attempts}) exceeded"
+                server,
+                "UNHEALTHY",
+                f"Max restart attempts ({server.max_restart_attempts}) exceeded",
             )
             return
 
         # Exponential backoff
-        backoff = min(self.base_backoff * (2 ** count), self.max_backoff)
+        backoff = min(self.base_backoff * (2**count), self.max_backoff)
         logger.info(
             "Auto-restarting %s (attempt %d, backoff %.0fs)",
-            server.name, count + 1, backoff,
+            server.name,
+            count + 1,
+            backoff,
         )
         await asyncio.sleep(backoff)
 
@@ -310,17 +312,23 @@ class ServerWatcher:
         old_status = server.status
         logger.info(
             "Server %s: %s -> %s (%s)",
-            server.name, old_status, new_status, reason,
+            server.name,
+            old_status,
+            new_status,
+            reason,
         )
 
         async with async_session() as session:
             repo = ServerRepository(session)
             await repo.update_status(server.id, new_status)
 
-        await self.event_bus.publish("server.health_changed", {
-            "server_id": str(server.id),
-            "name": server.name,
-            "old_status": old_status,
-            "new_status": new_status,
-            "reason": reason,
-        })
+        await self.event_bus.publish(
+            "server.health_changed",
+            {
+                "server_id": str(server.id),
+                "name": server.name,
+                "old_status": old_status,
+                "new_status": new_status,
+                "reason": reason,
+            },
+        )

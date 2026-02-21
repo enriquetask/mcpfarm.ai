@@ -6,15 +6,17 @@ Broadcasts events from Redis pub/sub to all connected frontend clients.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
-from typing import Any
-
-from fastapi import WebSocket
-
-from mcpfarm_gateway.realtime.redis_pubsub import EventBus
+from typing import TYPE_CHECKING, Any
 
 from mcpfarm_gateway.observability.metrics import websocket_connections
+
+if TYPE_CHECKING:
+    from fastapi import WebSocket
+
+    from mcpfarm_gateway.realtime.redis_pubsub import EventBus
 
 logger = logging.getLogger(__name__)
 
@@ -36,10 +38,8 @@ class WebSocketHub:
         """Stop the background listener."""
         if self._listener_task:
             self._listener_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._listener_task
-            except asyncio.CancelledError:
-                pass
             self._listener_task = None
         logger.info("WebSocket hub stopped")
 

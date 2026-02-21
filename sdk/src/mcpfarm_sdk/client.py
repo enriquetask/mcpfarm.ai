@@ -88,7 +88,7 @@ class MCPFarmClient:
             raise ImportError(
                 "langchain-mcp-adapters is required. "
                 "Install with: pip install mcpfarm-sdk[langchain]"
-            )
+            ) from None
 
         headers = dict(self._headers) if self._headers else {}
         config = {
@@ -98,8 +98,8 @@ class MCPFarmClient:
                 "headers": headers,
             }
         }
-        async with MultiServerMCPClient(config) as mcp_client:
-            return mcp_client.get_tools()
+        async with MultiServerMCPClient(config) as mcp_client:  # type: ignore[arg-type, misc]
+            return await mcp_client.get_tools()
 
     async def create_tools(self) -> list:
         """Create LangChain StructuredTool wrappers for all farm tools.
@@ -112,9 +112,8 @@ class MCPFarmClient:
             from langchain_core.tools import StructuredTool
         except ImportError:
             raise ImportError(
-                "langchain-core is required. "
-                "Install with: pip install langchain-core"
-            )
+                "langchain-core is required. Install with: pip install langchain-core"
+            ) from None
 
         tools_data = await self.list_tools()
 
@@ -126,6 +125,7 @@ class MCPFarmClient:
             def _make_func(tool_name: str):
                 async def _call(**kwargs: Any) -> Any:
                     return await self.call_tool(tool_name, kwargs)
+
                 return _call
 
             lc_tools.append(

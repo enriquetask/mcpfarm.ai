@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
-from prometheus_client import Counter, Gauge, Histogram, generate_latest, CONTENT_TYPE_LATEST
-from starlette.requests import Request
+from typing import TYPE_CHECKING
+
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, generate_latest
 from starlette.responses import Response
+
+if TYPE_CHECKING:
+    from starlette.requests import Request
 
 # ── HTTP metrics (populated by middleware) ──────────────────────────
 
@@ -78,6 +82,7 @@ websocket_connections = Gauge(
 
 
 # ── /metrics endpoint ──────────────────────────────────────────────
+
 
 async def metrics_endpoint(request: Request) -> Response:
     """Prometheus metrics endpoint (unauthenticated)."""

@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from fastapi import APIRouter, Depends
 
 from mcpfarm_gateway.api.deps import get_current_api_key, get_tool_registry
 from mcpfarm_gateway.api.schemas import ToolListResponse, ToolResponse
-from mcpfarm_gateway.db.models import APIKey
-from mcpfarm_gateway.mcp.tool_registry import ToolRegistry
+
+if TYPE_CHECKING:
+    from mcpfarm_gateway.db.models import APIKey
+    from mcpfarm_gateway.mcp.tool_registry import ToolRegistry
 
 router = APIRouter(prefix="/tools", tags=["tools"])
 
@@ -41,6 +45,7 @@ async def get_tool(
     tool = await tool_reg.get_tool(namespaced_name)
     if not tool:
         from fastapi import HTTPException
+
         raise HTTPException(status_code=404, detail="Tool not found")
     return ToolResponse(
         name=tool["name"],

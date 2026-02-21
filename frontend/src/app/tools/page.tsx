@@ -1,22 +1,83 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useTools } from "@/stores/farm-store";
 import { callTool } from "@/lib/api";
 import type { ToolData } from "@/lib/api";
 
+function formatNamespace(ns: string): string {
+  return ns
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export default function ToolsPage() {
   const { tools, loading } = useTools();
   const [selectedTool, setSelectedTool] = useState<ToolData | null>(null);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
+    new Set(),
+  );
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, ToolData[]>();
+    for (const tool of tools) {
+      const ns = tool.server_namespace || "other";
+      if (!map.has(ns)) map.set(ns, []);
+      map.get(ns)!.push(tool);
+    }
+    return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, [tools]);
+
+  function toggleGroup(ns: string) {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(ns)) {
+        next.delete(ns);
+      } else {
+        next.add(ns);
+      }
+      return next;
+    });
+  }
 
   return (
     <div className="mx-auto max-w-7xl animate-fade-in">
-      <h2
-        className="mb-6 text-2xl font-semibold"
-        style={{ color: "var(--text-primary)" }}
-      >
-        Tools
-      </h2>
+      <div className="mb-6 flex items-center justify-between">
+        <h2
+          className="text-2xl font-semibold"
+          style={{ color: "var(--text-primary)" }}
+        >
+          Tools
+          {tools.length > 0 && (
+            <span
+              className="ml-3 text-base font-normal"
+              style={{ color: "var(--text-tertiary)" }}
+            >
+              {tools.length} total
+            </span>
+          )}
+        </h2>
+        {grouped.length > 0 && (
+          <div className="flex gap-3 text-xs">
+            <button
+              onClick={() => setCollapsedGroups(new Set())}
+              className="transition-colors hover:underline"
+              style={{ color: "var(--text-tertiary)" }}
+            >
+              Expand All
+            </button>
+            <button
+              onClick={() =>
+                setCollapsedGroups(new Set(grouped.map(([ns]) => ns)))
+              }
+              className="transition-colors hover:underline"
+              style={{ color: "var(--text-tertiary)" }}
+            >
+              Collapse All
+            </button>
+          </div>
+        )}
+      </div>
 
       {loading ? (
         <div className="glass-card p-8 text-center">
@@ -33,39 +94,80 @@ export default function ToolsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {/* Tool list */}
-          <div className="space-y-3">
-            {tools.map((tool) => (
-              <button
-                key={tool.namespaced_name}
-                onClick={() => setSelectedTool(tool)}
-                className={`glass-card w-full p-4 text-left transition-all ${
-                  selectedTool?.namespaced_name === tool.namespaced_name
-                    ? "border-neural-500/50 ring-1 ring-neural-500/30"
-                    : ""
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="rounded-full bg-neural-500/10 px-2.5 py-0.5 text-xs font-medium text-neural-400">
-                    {tool.server_namespace}
-                  </span>
-                  <h3
-                    className="font-mono text-sm font-semibold"
-                    style={{ color: "var(--text-primary)" }}
+          {/* Tool list — grouped by server namespace */}
+          <div className="space-y-4">
+            {grouped.map(([ns, groupTools]) => {
+              const isExpanded = !collapsedGroups.has(ns);
+              return (
+                <div key={ns}>
+                  {/* Accordion header */}
+                  <button
+                    onClick={() => toggleGroup(ns)}
+                    className="glass-card flex w-full items-center gap-3 px-4 py-3 text-left transition-all hover:brightness-110"
                   >
-                    {tool.namespaced_name}
-                  </h3>
+                    <svg
+                      className={`h-4 w-4 shrink-0 transition-transform duration-200 ${
+                        isExpanded ? "rotate-90" : ""
+                      }`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      style={{ color: "var(--text-tertiary)" }}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                    <span
+                      className="text-sm font-semibold"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      {formatNamespace(ns)}
+                    </span>
+                    <span className="ml-auto rounded-full bg-neural-500/10 px-2.5 py-0.5 text-xs font-medium text-neural-400">
+                      {groupTools.length}{" "}
+                      {groupTools.length === 1 ? "tool" : "tools"}
+                    </span>
+                  </button>
+
+                  {/* Accordion body */}
+                  {isExpanded && (
+                    <div className="mt-2 space-y-2 pl-4">
+                      {groupTools.map((tool) => (
+                        <button
+                          key={tool.namespaced_name}
+                          onClick={() => setSelectedTool(tool)}
+                          className={`glass-card w-full p-4 text-left transition-all ${
+                            selectedTool?.namespaced_name ===
+                            tool.namespaced_name
+                              ? "border-neural-500/50 ring-1 ring-neural-500/30"
+                              : ""
+                          }`}
+                        >
+                          <h3
+                            className="font-mono text-sm font-semibold"
+                            style={{ color: "var(--text-primary)" }}
+                          >
+                            {tool.namespaced_name}
+                          </h3>
+                          {tool.description && (
+                            <p
+                              className="mt-1 text-sm"
+                              style={{ color: "var(--text-secondary)" }}
+                            >
+                              {tool.description}
+                            </p>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                {tool.description && (
-                  <p
-                    className="mt-2 text-sm"
-                    style={{ color: "var(--text-secondary)" }}
-                  >
-                    {tool.description}
-                  </p>
-                )}
-              </button>
-            ))}
+              );
+            })}
           </div>
 
           {/* Playground panel */}

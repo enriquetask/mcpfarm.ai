@@ -51,7 +51,7 @@ Add, remove, start, and stop MCP servers without restarting the gateway. Each se
 
 ### Unified Tool Registry
 
-Every tool from every server is namespaced and discoverable through a single API. Browse all 18+ tools, see their schemas, and test them directly in the built-in playground.
+Every tool from every server is namespaced and discoverable through a single API. Browse all 34 tools across 5 servers, see their schemas, and test them directly in the built-in playground with live results and copy-to-clipboard.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/tools-playground-dark.png">
@@ -82,27 +82,27 @@ Built-in interactive API documentation covering every endpoint, the MCP protocol
 ## Architecture
 
 ```
-                    ┌─────────────────────────────────────────────┐
-                    │              MCPFarm Gateway                 │
-  Agents ──────────▶│                                             │
-  (LangGraph,       │  ┌─────────┐  ┌──────────┐  ┌───────────┐ │
-   CrewAI,          │  │ REST API│  │MCP Bridge│  │ WebSocket │ │
-   AutoGen, ...)    │  └────┬────┘  └────┬─────┘  └─────┬─────┘ │
-                    │       │            │               │       │
-                    │  ┌────▼────────────▼───────────────▼─────┐ │
-                    │  │        Tool Registry & Router          │ │
-                    │  └────┬────────────┬───────────────┬─────┘ │
-                    │       │            │               │       │
-                    └───────┼────────────┼───────────────┼───────┘
-                            │            │               │
-               ┌────────────┘     ┌──────┘        ┌──────┘
-               ▼                  ▼               ▼
-        ┌─────────────┐   ┌─────────────┐  ┌─────────────┐
-        │ Echo Server │   │  Calculator │  │ Web Search  │
-        │  (FastMCP)  │   │  (FastMCP)  │  │  (FastMCP)  │
-        │  3 tools    │   │  7 tools    │  │  8 tools    │
-        └─────────────┘   └─────────────┘  └─────────────┘
-             Docker             Docker           Docker
+                    ┌──────────────────────────────────────────────────┐
+                    │                MCPFarm Gateway                    │
+  Agents ──────────▶│                                                  │
+  (LangGraph,       │  ┌──────────┐  ┌───────────┐  ┌──────────────┐ │
+   CrewAI,          │  │ REST API │  │ MCP Bridge│  │  WebSocket   │ │
+   AutoGen, ...)    │  └────┬─────┘  └─────┬─────┘  └──────┬───────┘ │
+                    │       │              │                │         │
+                    │  ┌────▼──────────────▼────────────────▼───────┐ │
+                    │  │          Tool Registry & Router             │ │
+                    │  └──┬─────────┬──────────┬──────────┬────┬───┘ │
+                    │     │         │          │          │    │     │
+                    └─────┼─────────┼──────────┼──────────┼────┼─────┘
+                          │         │          │          │    │
+          ┌───────────────┘    ┌────┘    ┌─────┘    ┌─────┘   └──────┐
+          ▼                    ▼         ▼          ▼                ▼
+   ┌────────────┐  ┌────────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐
+   │   Echo     │  │ Calculator │  │Web Search│  │  Data    │  │  Comms   │
+   │ (FastMCP)  │  │ (FastMCP)  │  │(FastMCP) │  │ Science  │  │(FastMCP) │
+   │  3 tools   │  │  7 tools   │  │ 8 tools  │  │ 11 tools │  │ 5 tools  │
+   └────────────┘  └────────────┘  └──────────┘  └──────────┘  └──────────┘
+      Docker          Docker          Docker         Docker        Docker
 ```
 
 **Key design principles:**
@@ -180,13 +180,15 @@ tools = await client.create_tools()  # Returns List[StructuredTool]
 
 ## Included MCP Servers
 
-MCPFarm ships with three servers to get you started:
+MCPFarm ships with five servers and **34 tools** to get you started:
 
 | Server | Namespace | Tools | Description |
 |--------|-----------|-------|-------------|
 | **Echo** | `echo` | 3 | Echo, reverse, and uppercase — great for testing |
 | **Calculator** | `calc` | 7 | Add, subtract, multiply, divide, power, sqrt, modulo |
-| **Web Search** | `web` | 8 | Tavily-powered search, news, crawl, extract (requires API key) |
+| **Web Search** | `web` | 8 | Tavily-powered search, news, site search, crawl, extract, URL mapping |
+| **Data Science** | `data` | 11 | NumPy/Pandas statistics, correlations, distributions, CSV analysis |
+| **Communications** | `comms` | 5 | Gmail send/read/search, WhatsApp messaging (requires credentials) |
 
 ### Adding Your Own Server
 
@@ -311,7 +313,9 @@ mcpfarm.ai/
 ├── servers/                    # MCP server implementations
 │   ├── echo/                   # Echo server (3 tools)
 │   ├── calculator/             # Calculator server (7 tools)
-│   └── web_search/             # Tavily web search server (8 tools)
+│   ├── web_search/             # Tavily web search server (8 tools)
+│   ├── data_science/           # NumPy/Pandas data science server (11 tools)
+│   └── communications/         # Gmail & WhatsApp server (5 tools)
 ├── examples/                   # Agent demos (LangGraph)
 ├── infra/                      # Prometheus, Grafana configs
 ├── scripts/                    # Management scripts (start, stop, restart)
@@ -341,6 +345,9 @@ Key environment variables (see `.env.example` for all):
 | `GATEWAY_LOG_FORMAT` | `console` | Log format (console, json) |
 | `ENABLE_METRICS` | `true` | Enable Prometheus metrics |
 | `TAVILY_API_KEY` | — | Tavily API key for web search server |
+| `GMAIL_ADDRESS` | — | Gmail address for communications server |
+| `GMAIL_APP_PASSWORD` | — | Gmail app password for communications server |
+| `WHATSAPP_TOKEN` | — | WhatsApp API token for communications server |
 | `DATABASE_URL` | (auto) | PostgreSQL connection string |
 | `REDIS_URL` | (auto) | Redis connection string |
 

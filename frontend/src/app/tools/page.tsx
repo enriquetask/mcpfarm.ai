@@ -347,30 +347,81 @@ function ToolPlayground({ tool }: { tool: ToolData }) {
 
       {/* Result */}
       {(result !== null || error) && (
-        <div className="mt-4">
-          <div className="mb-2 flex items-center justify-between">
-            <span
-              className="text-xs font-medium"
-              style={{ color: "var(--text-tertiary)" }}
-            >
-              Result
-            </span>
-            {durationMs !== null && (
-              <span className="text-xs text-neural-400">{durationMs}ms</span>
-            )}
-          </div>
-          <pre
-            className="overflow-auto rounded-lg p-3 font-mono text-xs"
-            style={{
-              background: "var(--bg-tertiary)",
-              color: error ? "#ef4444" : "var(--text-primary)",
-              maxHeight: "200px",
-            }}
-          >
-            {error || JSON.stringify(result, null, 2)}
-          </pre>
-        </div>
+        <ResultBlock
+          text={error || JSON.stringify(result, null, 2)}
+          isError={!!error}
+          durationMs={durationMs}
+        />
       )}
+    </div>
+  );
+}
+
+function ResultBlock({
+  text,
+  isError,
+  durationMs,
+}: {
+  text: string;
+  isError: boolean;
+  durationMs: number | null;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  function handleCopy() {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }
+
+  return (
+    <div className="mt-4">
+      <div className="mb-2 flex items-center justify-between">
+        <span
+          className="text-xs font-medium"
+          style={{ color: "var(--text-tertiary)" }}
+        >
+          Result
+        </span>
+        <div className="flex items-center gap-3">
+          {durationMs !== null && (
+            <span className="text-xs text-neural-400">{durationMs}ms</span>
+          )}
+          <button
+            onClick={handleCopy}
+            className="flex items-center gap-1 rounded px-1.5 py-0.5 text-xs transition-colors hover:bg-neural-500/10"
+            style={{ color: "var(--text-tertiary)" }}
+          >
+            {copied ? (
+              <>
+                <svg className="h-3.5 w-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="text-emerald-500">Copied</span>
+              </>
+            ) : (
+              <>
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <rect x="9" y="9" width="13" height="13" rx="2" strokeWidth={2} />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                </svg>
+                Copy
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+      <pre
+        className="overflow-auto rounded-lg p-3 font-mono text-xs"
+        style={{
+          background: "var(--bg-tertiary)",
+          color: isError ? "#ef4444" : "var(--text-primary)",
+          maxHeight: "200px",
+        }}
+      >
+        {text}
+      </pre>
     </div>
   );
 }

@@ -103,7 +103,7 @@ async def call_tool(
         })
 
         return ToolCallResponse(
-            result=output.get("result"),
+            result=output.get("result", output),
             duration_ms=duration_ms,
             invocation_id=inv.id,
         )

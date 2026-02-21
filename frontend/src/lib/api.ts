@@ -37,6 +37,8 @@ export interface InvocationData {
   id: string;
   tool_id: string | null;
   server_id: string;
+  tool_name: string | null;
+  server_namespace: string;
   caller_id: string | null;
   input_data: Record<string, unknown>;
   output_data: Record<string, unknown> | null;

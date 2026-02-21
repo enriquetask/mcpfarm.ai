@@ -87,6 +87,8 @@ class InvocationResponse(BaseModel):
     id: uuid.UUID
     tool_id: uuid.UUID | None
     server_id: uuid.UUID
+    tool_name: str | None = None
+    server_namespace: str = ""
     caller_id: str | None
     input_data: dict[str, Any]
     output_data: dict[str, Any] | None

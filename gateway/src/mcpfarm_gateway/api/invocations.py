@@ -158,6 +158,8 @@ async def list_invocations(
             id=inv.id,
             tool_id=inv.tool_id,
             server_id=inv.server_id,
+            tool_name=inv.tool.namespaced_name if inv.tool else None,
+            server_namespace=inv.server.namespace if inv.server else "",
             caller_id=inv.caller_id,
             input_data=inv.input_data,
             output_data=inv.output_data,

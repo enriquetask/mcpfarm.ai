@@ -14,7 +14,7 @@ function formatNamespace(ns: string): string {
 export default function ToolsPage() {
   const { tools, loading } = useTools();
   const [selectedTool, setSelectedTool] = useState<ToolData | null>(null);
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
     new Set(),
   );
 
@@ -29,7 +29,7 @@ export default function ToolsPage() {
   }, [tools]);
 
   function toggleGroup(ns: string) {
-    setCollapsedGroups((prev) => {
+    setExpandedGroups((prev) => {
       const next = new Set(prev);
       if (next.has(ns)) {
         next.delete(ns);
@@ -60,16 +60,16 @@ export default function ToolsPage() {
         {grouped.length > 0 && (
           <div className="flex gap-3 text-xs">
             <button
-              onClick={() => setCollapsedGroups(new Set())}
+              onClick={() =>
+                setExpandedGroups(new Set(grouped.map(([ns]) => ns)))
+              }
               className="transition-colors hover:underline"
               style={{ color: "var(--text-tertiary)" }}
             >
               Expand All
             </button>
             <button
-              onClick={() =>
-                setCollapsedGroups(new Set(grouped.map(([ns]) => ns)))
-              }
+              onClick={() => setExpandedGroups(new Set())}
               className="transition-colors hover:underline"
               style={{ color: "var(--text-tertiary)" }}
             >
@@ -97,7 +97,7 @@ export default function ToolsPage() {
           {/* Tool list — grouped by server namespace */}
           <div className="space-y-4">
             {grouped.map(([ns, groupTools]) => {
-              const isExpanded = !collapsedGroups.has(ns);
+              const isExpanded = expandedGroups.has(ns);
               return (
                 <div key={ns}>
                   {/* Accordion header */}

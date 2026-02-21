@@ -68,6 +68,9 @@ class ToolInvocation(Base):
     status: Mapped[str] = mapped_column(String(50), default="pending")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
+    tool: Mapped["MCPTool | None"] = relationship()
+    server: Mapped["MCPServer"] = relationship()
+
 
 class APIKey(Base):
     __tablename__ = "api_keys"

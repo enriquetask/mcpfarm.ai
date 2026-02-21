@@ -5,6 +5,7 @@ from typing import Any
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from mcpfarm_gateway.db.models import ToolInvocation
 
@@ -54,6 +55,7 @@ class InvocationRepository:
     async def list_recent(self, limit: int = 50, offset: int = 0) -> list[ToolInvocation]:
         result = await self.session.execute(
             select(ToolInvocation)
+            .options(selectinload(ToolInvocation.tool), selectinload(ToolInvocation.server))
             .order_by(ToolInvocation.created_at.desc())
             .offset(offset)
             .limit(limit)

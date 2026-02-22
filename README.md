@@ -81,28 +81,135 @@ Built-in interactive API documentation covering every endpoint, the MCP protocol
 
 ## Architecture
 
+```mermaid
+graph TB
+    subgraph Agents["Agent Frameworks"]
+        direction LR
+        A1["LangGraph"]
+        A2["CrewAI"]
+        A3["AutoGen"]
+        A4["Custom"]
+    end
+
+    subgraph Gateway["MCPFarm Gateway"]
+        direction TB
+        subgraph Protocols["Protocol Layer"]
+            direction LR
+            REST["REST API<br/><i>POST /api/tools/call</i>"]
+            MCP["MCP Bridge<br/><i>POST /mcp</i>"]
+            WS["WebSocket<br/><i>ws:///ws</i>"]
+        end
+        subgraph Core["Core"]
+            direction LR
+            REG["Tool Registry<br/>& Router"]
+            AUTH["Auth & Rate<br/>Limiting"]
+            OBS["Observability<br/>Metrics + Logs"]
+        end
+        Protocols --> Core
+    end
+
+    subgraph Servers["MCP Server Farm  (Docker Containers)"]
+        direction LR
+        S1["Echo<br/>3 tools"]
+        S2["Calculator<br/>7 tools"]
+        S3["Web Search<br/>8 tools"]
+        S4["Data Science<br/>11 tools"]
+        S5["Communications<br/>5 tools"]
+    end
+
+    subgraph Infra["Infrastructure"]
+        direction LR
+        PG[("PostgreSQL 16<br/><i>Servers, Keys,<br/>Invocations</i>")]
+        RD[("Redis 7<br/><i>Rate Limits,<br/>Cache</i>")]
+        PR["Prometheus<br/>+ Grafana"]
+    end
+
+    Agents -->|"HTTP / MCP"| Gateway
+    Core -->|"Docker SDK"| Servers
+    Core --- Infra
+
+    style Gateway fill:#1a1a2e,stroke:#6c63ff,stroke-width:2px,color:#fff
+    style Servers fill:#16213e,stroke:#00d4aa,stroke-width:2px,color:#fff
+    style Agents fill:#0f3460,stroke:#e94560,stroke-width:2px,color:#fff
+    style Infra fill:#1a1a2e,stroke:#f0a500,stroke-width:1px,color:#fff
+    style REST fill:#2d3748,stroke:#68d391,color:#fff
+    style MCP fill:#2d3748,stroke:#b794f4,color:#fff
+    style WS fill:#2d3748,stroke:#63b3ed,color:#fff
+    style S1 fill:#1e3a5f,stroke:#00d4aa,color:#fff
+    style S2 fill:#1e3a5f,stroke:#00d4aa,color:#fff
+    style S3 fill:#1e3a5f,stroke:#00d4aa,color:#fff
+    style S4 fill:#1e3a5f,stroke:#00d4aa,color:#fff
+    style S5 fill:#1e3a5f,stroke:#00d4aa,color:#fff
+    style PG fill:#2d3748,stroke:#f0a500,color:#fff
+    style RD fill:#2d3748,stroke:#f0a500,color:#fff
+    style PR fill:#2d3748,stroke:#f0a500,color:#fff
 ```
-                    ┌──────────────────────────────────────────────────┐
-                    │                MCPFarm Gateway                    │
-  Agents ──────────▶│                                                  │
-  (LangGraph,       │  ┌──────────┐  ┌───────────┐  ┌──────────────┐ │
-   CrewAI,          │  │ REST API │  │ MCP Bridge│  │  WebSocket   │ │
-   AutoGen, ...)    │  └────┬─────┘  └─────┬─────┘  └──────┬───────┘ │
-                    │       │              │                │         │
-                    │  ┌────▼──────────────▼────────────────▼───────┐ │
-                    │  │          Tool Registry & Router             │ │
-                    │  └──┬─────────┬──────────┬──────────┬────┬───┘ │
-                    │     │         │          │          │    │     │
-                    └─────┼─────────┼──────────┼──────────┼────┼─────┘
-                          │         │          │          │    │
-          ┌───────────────┘    ┌────┘    ┌─────┘    ┌─────┘   └──────┐
-          ▼                    ▼         ▼          ▼                ▼
-   ┌────────────┐  ┌────────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐
-   │   Echo     │  │ Calculator │  │Web Search│  │  Data    │  │  Comms   │
-   │ (FastMCP)  │  │ (FastMCP)  │  │(FastMCP) │  │ Science  │  │(FastMCP) │
-   │  3 tools   │  │  7 tools   │  │ 8 tools  │  │ 11 tools │  │ 5 tools  │
-   └────────────┘  └────────────┘  └──────────┘  └──────────┘  └──────────┘
-      Docker          Docker          Docker         Docker        Docker
+
+### Request Flow
+
+```mermaid
+sequenceDiagram
+    participant Agent as Agent / SDK
+    participant GW as Gateway
+    participant Auth as Auth Middleware
+    participant Reg as Tool Registry
+    participant Server as MCP Server
+    participant DB as PostgreSQL
+
+    Agent->>GW: POST /api/tools/call<br/>{"tool_name": "web_search_news", "arguments": {...}}
+    GW->>Auth: Verify API key + rate limit
+    Auth-->>GW: Authorized
+    GW->>Reg: Resolve "web_search_news" → Web Search server
+    Reg->>Server: Forward MCP tool call via HTTP
+    Server-->>Reg: Tool result (JSON)
+    Reg->>DB: Log invocation (tool, args, result, duration)
+    Reg->>GW: Broadcast via WebSocket
+    GW-->>Agent: {"result": {...}, "duration_ms": 1375}
+```
+
+### Network Topology
+
+```mermaid
+graph LR
+    subgraph Public["mcpfarm_public network"]
+        direction TB
+        GW["Gateway :8000"]
+        FE["Frontend :3100"]
+        WEB["Web Search"]
+        COMMS["Communications"]
+    end
+
+    subgraph Internal["mcpfarm_internal network"]
+        direction TB
+        ECHO["Echo"]
+        CALC["Calculator"]
+        DATA["Data Science"]
+        WEB2["Web Search"]
+        COMMS2["Communications"]
+    end
+
+    Internet(("Internet")) -.->|"API calls"| GW
+    Internet -.->|"Dashboard"| FE
+    WEB -.->|"Tavily API"| ExtAPI(("External APIs"))
+    COMMS -.->|"Gmail / WhatsApp"| ExtAPI
+
+    GW -->|"MCP over HTTP"| ECHO
+    GW -->|"MCP over HTTP"| CALC
+    GW -->|"MCP over HTTP"| DATA
+    GW -->|"MCP over HTTP"| WEB2
+    GW -->|"MCP over HTTP"| COMMS2
+
+    style Public fill:#1a2332,stroke:#63b3ed,stroke-width:2px,color:#fff
+    style Internal fill:#1a2332,stroke:#f56565,stroke-width:2px,color:#fff
+    style GW fill:#2d3748,stroke:#68d391,color:#fff
+    style FE fill:#2d3748,stroke:#68d391,color:#fff
+    style WEB fill:#2d3748,stroke:#00d4aa,color:#fff
+    style COMMS fill:#2d3748,stroke:#00d4aa,color:#fff
+    style ECHO fill:#2d3748,stroke:#f56565,color:#fff
+    style CALC fill:#2d3748,stroke:#f56565,color:#fff
+    style DATA fill:#2d3748,stroke:#f56565,color:#fff
+    style WEB2 fill:#2d3748,stroke:#b794f4,color:#fff
+    style COMMS2 fill:#2d3748,stroke:#b794f4,color:#fff
 ```
 
 **Key design principles:**

